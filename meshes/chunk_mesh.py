@@ -1,6 +1,7 @@
 from meshes.base_mesh import BaseMesh
 from meshes.chunk_mesh_builder import build_chunk_mesh
 
+
 class ChunkMesh(BaseMesh):
     def __init__(self, chunk):
         super().__init__()
@@ -18,5 +19,58 @@ class ChunkMesh(BaseMesh):
         mesh = build_chunk_mesh(
             chunk_voxels=self.chunk.voxels,
             format_size=self.format_size,
+            chunk_pos=self.chunk.position,
+            world_voxels=self.chunk.world.voxels
         )
         return mesh
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
