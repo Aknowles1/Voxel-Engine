@@ -8,6 +8,8 @@ include/
 lib/
 lib64/
 
+lib64
+
 # Ignore Python virtual environment configuration file
 pyvenv.cfg
 
