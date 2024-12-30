@@ -23,11 +23,16 @@ class Player(Camera):
                 voxel_handler.switch_mode()
 
     def mouse_control(self):
+        # Get the screen dimensions
+        screen_width, screen_height = pg.display.get_surface().get_size()
+        center_x, center_y = screen_width // 2, screen_height // 2
         mouse_dx, mouse_dy = pg.mouse.get_rel()
         if mouse_dx:
             self.rotate_yaw(delta_x=mouse_dx * MOUSE_SENSITIVITY)
         if mouse_dy:
             self.rotate_pitch(delta_y=mouse_dy * MOUSE_SENSITIVITY)
+        # Reset the mouse position to the center of the screen
+        pg.mouse.set_pos(center_x, center_y)
 
     def keyboard_control(self):
         key_state = pg.key.get_pressed()
