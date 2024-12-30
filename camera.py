@@ -57,3 +57,7 @@ class Camera:
 
     def move_back(self, velocity):
         self.position -= self.forward * velocity
+
+    def move_jump(self, velocity):
+        self.position += self.up*2 * velocity
+    

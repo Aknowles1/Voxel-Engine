@@ -9,7 +9,7 @@ DEPTH_SIZE = 24
 NUM_SAMPLES = 1  # antialiasing
 
 # resolution
-WIN_RES = glm.vec2(1600, 900)
+WIN_RES = glm.vec2(1920, 1080)
 
 # world generation
 SEED = 96737
