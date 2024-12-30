@@ -1,6 +1,7 @@
 from noise import noise2, noise3
 from random import random
 from settings import *
+import numpy as np
 
 
 @njit
@@ -70,13 +71,50 @@ def set_voxel_id(voxels, x, y, z, wx, wy, wz, world_height):
     # setting ID
     voxels[get_index(x, y, z)] = voxel_id
 
-    # place tree
+    # randomly place a pink or green tree
     if wy < DIRT_LVL:
-        place_tree(voxels, x, y, z, voxel_id)
+        # rando = np.random.randint(0, 2)
+        # if rando == 0:
+            place_pink_tree(voxels, x, y, z, voxel_id)
+        # elif rando == 1:
+        #     place_green_tree(voxels, x, y, z, voxel_id)        
 
+
+# @njit
+# def place_tree(voxels, x, y, z, voxel_id):
+#     rnd = random()
+#     if voxel_id != GRASS or rnd > TREE_PROBABILITY:
+#         return None
+#     if y + TREE_HEIGHT >= CHUNK_SIZE:
+#         return None
+#     if x - TREE_H_WIDTH < 0 or x + TREE_H_WIDTH >= CHUNK_SIZE:
+#         return None
+#     if z - TREE_H_WIDTH < 0 or z + TREE_H_WIDTH >= CHUNK_SIZE:
+#         return None
+
+#     # dirt under the tree
+#     voxels[get_index(x, y, z)] = DIRT
+
+#     # leaves
+#     m = 0
+#     for n, iy in enumerate(range(TREE_H_HEIGHT, TREE_HEIGHT - 1)):
+#         k = iy % 2
+#         rng = int(random() * 2)
+#         for ix in range(-TREE_H_WIDTH + m, TREE_H_WIDTH - m * rng):
+#             for iz in range(-TREE_H_WIDTH + m * rng, TREE_H_WIDTH - m):
+#                 if (ix + iz) % 4:
+#                     voxels[get_index(x + ix + k, y + iy, z + iz + k)] = LEAVES
+#         m += 1 if n > 0 else 3 if n > 1 else 0
+
+#     # tree trunk
+#     for iy in range(1, TREE_HEIGHT - 2):
+#         voxels[get_index(x, y + iy, z)] = WOOD
+
+#     # top
+#     voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = LEAVES
 
 @njit
-def place_tree(voxels, x, y, z, voxel_id):
+def place_pink_tree(voxels, x, y, z, voxel_id):
     rnd = random()
     if voxel_id != GRASS or rnd > TREE_PROBABILITY:
         return None
@@ -107,3 +145,36 @@ def place_tree(voxels, x, y, z, voxel_id):
 
     # top
     voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = LEAVES
+
+@njit
+def place_green_tree(voxels, x, y, z, voxel_id):
+    rnd = random()
+    if voxel_id != GRASS or rnd > TREE_PROBABILITY:
+        return None
+    if y + TREE_HEIGHT >= CHUNK_SIZE:
+        return None
+    if x - TREE_H_WIDTH < 0 or x + TREE_H_WIDTH >= CHUNK_SIZE:
+        return None
+    if z - TREE_H_WIDTH < 0 or z + TREE_H_WIDTH >= CHUNK_SIZE:
+        return None
+
+    # dirt under the tree
+    voxels[get_index(x, y, z)] = DIRT
+
+    # leaves
+    m = 0
+    for n, iy in enumerate(range(TREE_H_HEIGHT, TREE_HEIGHT - 1)):
+        k = iy % 2
+        rng = int(random() * 2)
+        for ix in range(-TREE_H_WIDTH + m, TREE_H_WIDTH - m * rng):
+            for iz in range(-TREE_H_WIDTH + m * rng, TREE_H_WIDTH - m):
+                if (ix + iz) % 4:
+                    voxels[get_index(x + ix + k, y + iy, z + iz + k)] = GRASS
+        m += 1 if n > 0 else 3 if n > 1 else 0
+
+    # tree trunk
+    for iy in range(1, TREE_HEIGHT - 2):
+        voxels[get_index(x, y + iy, z)] = WOOD
+
+    # top
+    voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = GRASS
