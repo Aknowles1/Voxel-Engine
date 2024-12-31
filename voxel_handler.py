@@ -18,56 +18,71 @@ class VoxelHandler:
         self.interaction_mode = 0  # 0: remove voxel   1: add voxel
         self.new_voxel_id = DIRT
 
-    def is_colliding(self, position):
+    def is_colliding(self, position, debug=False):
         """
         Check if the given position collides with any voxel.
-
         :param position: A glm.vec3 (float) representing the position to check.
         :return: True if there is a collision, False otherwise.
         """
-        # convert float position to integer block coords
-        voxel_world_pos = glm.ivec3(position)
+        # Convert float position to an integer world-space block position.
+        voxel_world_pos = glm.ivec3(glm.floor(position.x),glm.floor(position.y),glm.floor(position.z))
 
-        # 1) Find the chunk indices (cx, cy, cz) by integer division
-        chunk_x = voxel_world_pos.x // CHUNK_SIZE
-        chunk_y = voxel_world_pos.y // CHUNK_SIZE
-        chunk_z = voxel_world_pos.z // CHUNK_SIZE
+        # Get the chunk index from the world-space block coords
+        chunk_index = get_chunk_index(voxel_world_pos)
 
-        # 2) Check world bounds
-        if not (0 <= chunk_x < WORLD_W and
-                0 <= chunk_y < WORLD_H and
-                0 <= chunk_z < WORLD_D):
-            return False  # out of the generated world
+        
+        print(f"[is_colliding] Checking: {position} -> world block {voxel_world_pos}")
+        print(f"[is_colliding] Chunk index = {chunk_index}")
 
-        # 3) Compute the 1D chunk index
-        chunk_index = chunk_x + (chunk_z * WORLD_W) + (chunk_y * WORLD_AREA)
-        chunk = self.chunks[chunk_index]
-        if chunk is None:
-            return False  # chunk not loaded or is None
-
-        # 4) Compute local voxel coords within the chunk
-        #    chunk.position is (cx, cy, cz) in chunk space, so:
-        world_chunk_origin = glm.ivec3(chunk.position) * CHUNK_SIZE
-        local_x = voxel_world_pos.x - world_chunk_origin.x
-        local_y = voxel_world_pos.y - world_chunk_origin.y
-        local_z = voxel_world_pos.z - world_chunk_origin.z
-
-        # 5) Range check (should be in [0..CHUNK_SIZE-1])
-        if not (0 <= local_x < CHUNK_SIZE and
-                0 <= local_y < CHUNK_SIZE and
-                0 <= local_z < CHUNK_SIZE):
+        # If chunk index is out of world bounds, no collision in your finite world.
+        if chunk_index < 0 or chunk_index >= len(self.chunks):
+            print("[is_colliding] Out of valid chunk range -> no collision")
             return False
 
-        # 6) Compute 1D index into chunk.voxels
-        voxel_index = (local_x
-                       + local_y * CHUNK_SIZE
-                       + local_z * CHUNK_AREA)
+        # If the chunk is None or not generated, treat as no collision
+        chunk = self.chunks[chunk_index]
+        if chunk is None:
+            print("[is_colliding] Chunk is None -> no collision")
+            return False
+
+        # Convert the world block position to local chunk coords
+        # chunk.position is presumably the (cx, cy, cz) of the chunk in chunk-space
+        # so the actual world-space offset is chunk.position * CHUNK_SIZE
+        local_pos = voxel_world_pos - glm.ivec3(chunk.position) * CHUNK_SIZE
+
+
+        print(f"[is_colliding] Local pos = {local_pos}")
+
+        # If the local pos is out of [0, CHUNK_SIZE-1], no collision in this chunk
+        if not (0 <= local_pos.x < CHUNK_SIZE and
+                0 <= local_pos.y < CHUNK_SIZE and
+                0 <= local_pos.z < CHUNK_SIZE):
+            print("[is_colliding] Local position out of chunk bounds -> no collision")
+            return False
+
+        voxel_index = local_pos.x + local_pos.y * CHUNK_SIZE + local_pos.z * CHUNK_AREA
+
+        # If voxel_index is out of bounds, skip collision
         if voxel_index < 0 or voxel_index >= len(chunk.voxels):
+            print("[is_colliding] Invalid voxel index -> no collision")
             return False
 
         voxel_id = chunk.voxels[voxel_index]
+
+        # Zero typically means "air" or "empty"
         collision = (voxel_id != 0)
+
+        print(f"[is_colliding] voxel_id={voxel_id}, collision={collision}")
+
+        print(f"Chunk position (in chunk coords): {chunk.position}")
+        print(f"World block position: {voxel_world_pos}")
+        print(f"Local chunk coords: {local_pos}")
+
+        print(f"Hit collision type: " + str(collision))
+        print("chunk.voxels[{}] = {}".format(voxel_index, chunk.voxels[voxel_index]))
+        # if voxel_world_pos == position & voxel_id != 0:
         return collision
+
 
     def set_voxel_type(self, type_id):
         self.new_voxel_id = type_id
@@ -189,16 +204,43 @@ class VoxelHandler:
         return False
 
     def get_voxel_id(self, voxel_world_pos):
-        cx, cy, cz = chunk_pos = voxel_world_pos / CHUNK_SIZE
+        """
+        Return (voxel_id, voxel_index, local_pos, chunk) for a given world-block position.
+        If out of range or chunk is None, returns (0, 0, glm.ivec3(0), None).
+        """
+        # 1) Convert world block coords to chunk coords with integer division
+        chunk_x = voxel_world_pos.x // CHUNK_SIZE
+        chunk_y = voxel_world_pos.y // CHUNK_SIZE
+        chunk_z = voxel_world_pos.z // CHUNK_SIZE
 
-        if 0 <= cx < WORLD_W and 0 <= cy < WORLD_H and 0 <= cz < WORLD_D:
-            chunk_index = cx + WORLD_W * cz + WORLD_AREA * cy
-            chunk = self.chunks[chunk_index]
+        # 2) Check if chunk coords are within world bounds
+        if not (0 <= chunk_x < WORLD_W and 0 <= chunk_y < WORLD_H and 0 <= chunk_z < WORLD_D):
+            return 0, 0, glm.ivec3(0), None
 
-            lx, ly, lz = voxel_local_pos = voxel_world_pos - chunk_pos * CHUNK_SIZE
+        # 3) Compute chunk index
+        chunk_index = chunk_x + WORLD_W * chunk_z + WORLD_AREA * chunk_y
+        chunk = self.chunks[chunk_index]
+        if chunk is None:
+            return 0, 0, glm.ivec3(0), None
 
-            voxel_index = lx + CHUNK_SIZE * lz + CHUNK_AREA * ly
-            voxel_id = chunk.voxels[voxel_index]
+        # 4) Compute local voxel coords within the chunk
+        #    chunk.position is (cx, cy, cz) in chunk-space
+        #    so the chunk\u2019s world-space origin is (cx * CHUNK_SIZE, ...)
+        local_x = voxel_world_pos.x - (chunk_x * CHUNK_SIZE)
+        local_y = voxel_world_pos.y - (chunk_y * CHUNK_SIZE)
+        local_z = voxel_world_pos.z - (chunk_z * CHUNK_SIZE)
 
-            return voxel_id, voxel_index, voxel_local_pos, chunk
-        return 0, 0, 0, 0
+        # 5) Range check for local coords
+        if not (0 <= local_x < CHUNK_SIZE and
+                0 <= local_y < CHUNK_SIZE and
+                0 <= local_z < CHUNK_SIZE):
+            return 0, 0, glm.ivec3(0), None
+
+        # 6) Compute the index in the chunk.voxels array
+        voxel_index = local_x + (local_z * CHUNK_SIZE) + (local_y * CHUNK_AREA)
+        if not (0 <= voxel_index < len(chunk.voxels)):
+            return 0, 0, glm.ivec3(0), None
+
+        voxel_id = chunk.voxels[voxel_index]
+        return voxel_id, voxel_index, glm.ivec3(local_x, local_y, local_z), chunk
+

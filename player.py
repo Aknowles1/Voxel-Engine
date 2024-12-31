@@ -29,97 +29,51 @@ class Player(Camera):
 
     def move(self, direction, velocity):
         """
-        Attempts to move the player in the given direction.
-        We use a bounding-box approach for collisions: we build a 'test position'
-        and check if that bounding box collides with voxels.
+        Move the player using a bounding-box approach:
+        1. Build a test position
+        2. Check if that bounding box collides
+        3. If not, actually update self.position
         """
         new_position = self.position + direction * velocity
-        if not self.check_bounding_box_collision(new_position):
-            self.position = new_position
-        self.check_ground_collision()  # optional snapping logic
+
+        print("Potential new position: " + str(new_position))
+
+        # If the bounding box at new_position is colliding, do NOT move
+        if self.check_bounding_box_collision(new_position):
+            return False
+
+        self.position = new_position
+        return True
+
 
     def check_bounding_box_collision(self, test_pos):
         """
         Checks collisions for all corners of a bounding box that is
-        PLAYER_HEIGHT tall and 2 * PLAYER_HALF_WIDTH wide.
-        Returns True if *any* corner collides, else False.
+        PLAYER_HEIGHT tall and 2*PLAYER_HALF_WIDTH wide.
+        Returns True if any corner collides, else False.
         """
         voxel_handler = self.app.scene.world.voxel_handler
 
-        # The bounding box's "bottom" is at test_pos.y (feet),
-        # and the "top" is at test_pos.y + PLAYER_HEIGHT (head).
-        # The left/right and front/back edges are offset by PLAYER_HALF_WIDTH.
-
-        # Collect corners of the bounding box (bottom + top).
         corners = [
-            # Bottom corners (y = 0)
-            glm.vec3(-PLAYER_HALF_WIDTH, 0.0, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, 0.0, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, 0.0,  PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, 0.0,  PLAYER_HALF_WIDTH),
-
-            # Top corners (y = PLAYER_HEIGHT)
-            glm.vec3(-PLAYER_HALF_WIDTH, PLAYER_HEIGHT, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, PLAYER_HEIGHT, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, PLAYER_HEIGHT,  PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, PLAYER_HEIGHT,  PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH,    0.0,             -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH,    0.0,             -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH,    0.0,              PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH,    0.0,              PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, PLAYER_HEIGHT,     -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH, PLAYER_HEIGHT,     -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH, PLAYER_HEIGHT,      PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, PLAYER_HEIGHT,      PLAYER_HALF_WIDTH),
         ]
 
-        # Test each corner in voxel space.
         for corner_offset in corners:
             corner_world_pos = test_pos + corner_offset
             if voxel_handler.is_colliding(corner_world_pos):
-                return True  # collide if ANY corner hits a filled voxel
+                return True
 
-        return False  # no collision if all corners are free
+        return False
 
-    def check_ground_collision(self):
-        """
-        Simple snap-to-ground example. We move 1 block down from the player's
-        current position and see if that collisions. If so, we round the player's y.
-        """
-        voxel_handler = self.app.scene.world.voxel_handler
-        # We'll check the bottom corners of the bounding box
-        # but offset downward by 0.5 or 1.0 to see if there's ground below.
-        bottom_corners = [
-            glm.vec3(-PLAYER_HALF_WIDTH, -0.9, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, -0.9, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, -0.9,  PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, -0.9,  PLAYER_HALF_WIDTH),
-        ]
-        collision_below = False
-        for corner_offset in bottom_corners:
-            corner_world_pos = self.position + corner_offset
-            if voxel_handler.is_colliding(corner_world_pos):
-                collision_below = True
-                break
-
-        if collision_below:
-            # Snap the player's Y to an integer. This is an artificial "Minecraft-like" snap.
-            self.position.y = round(self.position.y)
-
-    def move(self, direction, velocity):
-        displacement = direction * velocity
-
-        # Move along X
-        old_x = self.position.x
-        self.position.x += displacement.x
-        if self.check_bounding_box_collision(self.position):
-            self.position.x = old_x
-
-        # Move along Z
-        old_z = self.position.z
-        self.position.z += displacement.z
-        if self.check_bounding_box_collision(self.position):
-            self.position.z = old_z
-
-        # Move along Y
-        old_y = self.position.y
-        self.position.y += displacement.y
-        if self.check_bounding_box_collision(self.position):
-            self.position.y = old_y
-
-
+    def move_left(self, velocity):
+        self.move(-self.right, velocity)
 
     def move_right(self, velocity):
         self.move(self.right, velocity)
