@@ -73,11 +73,11 @@ def set_voxel_id(voxels, x, y, z, wx, wy, wz, world_height):
 
     # randomly place a pink or green tree
     if wy < DIRT_LVL:
-        # rando = np.random.randint(0, 2)
-        # if rando == 0:
+        rando = np.random.randint(0, 2)
+        if rando == 0:
             place_pink_tree(voxels, x, y, z, voxel_id)
-        # elif rando == 1:
-        #     place_green_tree(voxels, x, y, z, voxel_id)        
+        elif rando == 1:
+            place_green_tree(voxels, x, y, z, voxel_id)        
 
 
 # @njit
@@ -169,7 +169,7 @@ def place_green_tree(voxels, x, y, z, voxel_id):
         for ix in range(-TREE_H_WIDTH + m, TREE_H_WIDTH - m * rng):
             for iz in range(-TREE_H_WIDTH + m * rng, TREE_H_WIDTH - m):
                 if (ix + iz) % 4:
-                    voxels[get_index(x + ix + k, y + iy, z + iz + k)] = GRASS
+                    voxels[get_index(x + ix + k, y + iy, z + iz + k)] = GREEN_LEAF
         m += 1 if n > 0 else 3 if n > 1 else 0
 
     # tree trunk
@@ -177,4 +177,4 @@ def place_green_tree(voxels, x, y, z, voxel_id):
         voxels[get_index(x, y + iy, z)] = WOOD
 
     # top
-    voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = GRASS
+    voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = GREEN_LEAF

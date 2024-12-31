@@ -61,6 +61,7 @@ STONE = 4
 SNOW = 5
 LEAVES = 6
 WOOD = 7
+GREEN_LEAF = 8
 
 # terrain levels
 SNOW_LVL = 54
