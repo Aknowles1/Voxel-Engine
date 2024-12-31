@@ -18,6 +18,9 @@ class VoxelHandler:
         self.interaction_mode = 0  # 0: remove voxel   1: add voxel
         self.new_voxel_id = DIRT
 
+    def set_voxel_type(self, type_id):
+        self.new_voxel_id = type_id
+
     def add_voxel(self):
         if self.voxel_id:
             # check voxel id along normal
