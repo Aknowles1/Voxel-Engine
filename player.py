@@ -3,6 +3,9 @@ import glm
 from camera import Camera
 from settings import *
 
+# Gravity constant. Tweak to your liking (larger => faster fall).
+GRAVITY = 9.81
+
 # Optional: define some constants for player size
 PLAYER_HALF_WIDTH = 0.3  # half the width (radius)
 PLAYER_HEIGHT = 1.8      # total height
@@ -13,10 +16,41 @@ class Player(Camera):
         self.player_voxel = 0
         super().__init__(position, yaw, pitch)
 
+        self.velocity = glm.vec3(0, 0, 0)   # store current velocity
+        self.on_ground = False             # whether the player is on the ground
+
     def update(self):
         self.keyboard_control()
         self.mouse_control()
+        # # apply gravity
+        # self.apply_gravity()
         super().update()
+
+    # def apply_gravity(self):
+    #     """
+    #     Applies a simple gravity each frame, then tries to move the player down.
+    #     If there's a collision, we stand on the block and reset vertical velocity.
+    #     """
+    #     dt = self.app.delta_time * 0.001  # if your delta_time is in milliseconds
+
+    #     # Only apply gravity if not on the ground
+    #     if not self.on_ground:
+    #         self.velocity.y -= GRAVITY * dt
+
+    #     # Attempt to move by velocity.y in Y-axis
+    #     new_position = glm.vec3(self.position)
+    #     new_position.y += self.velocity.y
+
+    #     # If bounding-box collision occurs, stand on block and reset velocity
+    #     if self.check_bounding_box_collision(new_position):
+    #         # We hit something. Move as close to ground as possible:
+    #         #   Approach #1: simpler "Minecraft snap": set on_ground, zero velocity
+    #         #   Approach #2: partial move until just above collision
+    #         self.on_ground = True
+    #         self.velocity.y = 0.0
+    #     else:
+    #         self.on_ground = False
+    #         self.position.y = new_position.y
 
     def handle_event(self, event):
         # adding and removing voxels with clicks
@@ -91,7 +125,10 @@ class Player(Camera):
         self.move(-self.forward, velocity)
 
     def move_jump(self, velocity):
-        self.move(self.up, velocity)
+        if self.on_ground:
+            self.velocity.y = 1.5  # or any jump impulse
+            self.on_ground = False
+            self.move(self.up, velocity)
 
     def mouse_control(self):
         # Get the screen dimensions
