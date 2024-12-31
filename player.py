@@ -3,107 +3,97 @@ import glm
 from camera import Camera
 from settings import *
 
-# Gravity constant. Tweak to your liking (larger => faster fall).
-GRAVITY = 9.81
-
-# Optional: define some constants for player size
-PLAYER_HALF_WIDTH = 0.3  # half the width (radius)
-PLAYER_HEIGHT = 1.8      # total height
+GRAVITY = 2
+PLAYER_HALF_WIDTH = 0.3
+PLAYER_HEIGHT = 3.5
+HALF_HEIGHT = PLAYER_HEIGHT * 0.5
+JUMP_VELOCITY = 1.5
 
 class Player(Camera):
     def __init__(self, app, position=PLAYER_POS, yaw=-90, pitch=0):
+        """
+        We'll treat 'position' as the center of our bounding box.
+        You can place the camera's 'eye' above center if you'd like.
+        """
         self.app = app
-        self.player_voxel = 0
         super().__init__(position, yaw, pitch)
-
-        self.velocity = glm.vec3(0, 0, 0)   # store current velocity
-        self.on_ground = False             # whether the player is on the ground
+        self.velocity = glm.vec3(0, 0, 0)
+        self.on_ground = False
 
     def update(self):
         self.keyboard_control()
         self.mouse_control()
-        # # apply gravity
-        # self.apply_gravity()
+        self.apply_gravity()
         super().update()
 
-    # def apply_gravity(self):
-    #     """
-    #     Applies a simple gravity each frame, then tries to move the player down.
-    #     If there's a collision, we stand on the block and reset vertical velocity.
-    #     """
-    #     dt = self.app.delta_time * 0.001  # if your delta_time is in milliseconds
+    def apply_gravity(self):
+        dt = self.app.delta_time * 0.001
+        if not self.on_ground:
+            self.velocity.y -= GRAVITY * dt
 
-    #     # Only apply gravity if not on the ground
-    #     if not self.on_ground:
-    #         self.velocity.y -= GRAVITY * dt
+        new_position = glm.vec3(self.position)
+        new_position.y += self.velocity.y
 
-    #     # Attempt to move by velocity.y in Y-axis
-    #     new_position = glm.vec3(self.position)
-    #     new_position.y += self.velocity.y
+        # partial snap approach
+        if self.check_bounding_box_collision(new_position):
+            sign = glm.sign(self.velocity.y)
+            step_size = 0.02
+            test_y = self.position.y
 
-    #     # If bounding-box collision occurs, stand on block and reset velocity
-    #     if self.check_bounding_box_collision(new_position):
-    #         # We hit something. Move as close to ground as possible:
-    #         #   Approach #1: simpler "Minecraft snap": set on_ground, zero velocity
-    #         #   Approach #2: partial move until just above collision
-    #         self.on_ground = True
-    #         self.velocity.y = 0.0
-    #     else:
-    #         self.on_ground = False
-    #         self.position.y = new_position.y
+            while True:
+                test_y += sign * step_size
+                test_pos = glm.vec3(self.position.x, test_y, self.position.z)
+
+                if self.check_bounding_box_collision(test_pos):
+                    test_y -= sign * step_size
+                    break
+
+                # if we passed new_position.y, stop
+                if (sign < 0 and test_y <= new_position.y) or (sign > 0 and test_y >= new_position.y):
+                    break
+
+            self.position.y = test_y
+            # landed if we were moving downward
+            if sign < 0:
+                self.on_ground = True
+                self.velocity.y = 0.0
+        else:
+            self.on_ground = False
+            self.position.y = new_position.y
 
     def handle_event(self, event):
-        # adding and removing voxels with clicks
         if event.type == pg.MOUSEBUTTONDOWN:
             voxel_handler = self.app.scene.world.voxel_handler
             if event.button == 1:
                 voxel_handler.set_voxel()
-            if event.button == 3:
+            elif event.button == 3:
                 voxel_handler.switch_mode()
 
     def move(self, direction, velocity):
-        """
-        Move the player using a bounding-box approach:
-        1. Build a test position
-        2. Check if that bounding box collides
-        3. If not, actually update self.position
-        """
         new_position = self.position + direction * velocity
-
-        print("Potential new position: " + str(new_position))
-
-        # If the bounding box at new_position is colliding, do NOT move
         if self.check_bounding_box_collision(new_position):
             return False
-
         self.position = new_position
         return True
 
-
     def check_bounding_box_collision(self, test_pos):
-        """
-        Checks collisions for all corners of a bounding box that is
-        PLAYER_HEIGHT tall and 2*PLAYER_HALF_WIDTH wide.
-        Returns True if any corner collides, else False.
-        """
         voxel_handler = self.app.scene.world.voxel_handler
-
+        # bounding box corners around 'test_pos' as center
         corners = [
-            glm.vec3(-PLAYER_HALF_WIDTH,    0.0,             -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH,    0.0,             -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH,    0.0,              PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH,    0.0,              PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, PLAYER_HEIGHT,     -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, PLAYER_HEIGHT,     -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, PLAYER_HEIGHT,      PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, PLAYER_HEIGHT,      PLAYER_HALF_WIDTH),
-        ]
+            glm.vec3(-PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH, -HALF_HEIGHT,  PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, -HALF_HEIGHT,  PLAYER_HALF_WIDTH),
 
+            glm.vec3(-PLAYER_HALF_WIDTH,  HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH,  HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH,  HALF_HEIGHT,  PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH,  HALF_HEIGHT,  PLAYER_HALF_WIDTH),
+        ]
         for corner_offset in corners:
             corner_world_pos = test_pos + corner_offset
             if voxel_handler.is_colliding(corner_world_pos):
                 return True
-
         return False
 
     def move_left(self, velocity):
@@ -126,68 +116,70 @@ class Player(Camera):
 
     def move_jump(self, velocity):
         if self.on_ground:
-            self.velocity.y = 1.5  # or any jump impulse
+            self.velocity.y = JUMP_VELOCITY
             self.on_ground = False
             self.move(self.up, velocity)
 
     def mouse_control(self):
-        # Get the screen dimensions
         screen_width, screen_height = pg.display.get_surface().get_size()
         center_x, center_y = screen_width // 2, screen_height // 2
+
         mouse_dx, mouse_dy = pg.mouse.get_rel()
         if mouse_dx:
             self.rotate_yaw(delta_x=mouse_dx * MOUSE_SENSITIVITY)
         if mouse_dy:
             self.rotate_pitch(delta_y=mouse_dy * MOUSE_SENSITIVITY)
-        # Reset the mouse position to the center of the screen
+
         pg.mouse.set_pos(center_x, center_y)
 
     def keyboard_control(self):
         key_state = pg.key.get_pressed()
         vel = PLAYER_SPEED * self.app.delta_time
-        if key_state[pg.K_w] & key_state[pg.K_LSHIFT]:
-            self.move_forward(vel * 2.5)
-        if key_state[pg.K_s] & key_state[pg.K_LSHIFT]:
-            self.move_back(vel * 2.5)
-        if key_state[pg.K_d] & key_state[pg.K_LSHIFT]:
-            self.move_right(vel * 2.5)
-        if key_state[pg.K_a] & key_state[pg.K_LSHIFT]:
-            self.move_left(vel * 2.5)
+        sprint_mult = 2.5 if key_state[pg.K_LSHIFT] else 1.0
+
         if key_state[pg.K_w]:
-            self.move_forward(vel)
+            self.move_forward(vel * sprint_mult)
         if key_state[pg.K_s]:
-            self.move_back(vel)
+            self.move_back(vel * sprint_mult)
         if key_state[pg.K_d]:
-            self.move_right(vel)
+            self.move_right(vel * sprint_mult)
         if key_state[pg.K_a]:
-            self.move_left(vel)
+            self.move_left(vel * sprint_mult)
         if key_state[pg.K_q]:
             self.move_up(vel)
         if key_state[pg.K_e]:
             self.move_down(vel)
         if key_state[pg.K_SPACE]:
             self.move_jump(vel)
+
+        # Hotkeys for voxel types
+        voxel_handler = self.app.scene.world.voxel_handler
         if key_state[pg.K_1]:
-            voxel_handler = self.app.scene.world.voxel_handler
             voxel_handler.set_voxel_type(SAND)
-        if key_state[pg.K_2]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_2]:
             voxel_handler.set_voxel_type(GRASS)
-        if key_state[pg.K_3]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_3]:
             voxel_handler.set_voxel_type(DIRT)
-        if key_state[pg.K_4]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_4]:
             voxel_handler.set_voxel_type(STONE)
-        if key_state[pg.K_5]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_5]:
             voxel_handler.set_voxel_type(SNOW)
-        if key_state[pg.K_6]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_6]:
             voxel_handler.set_voxel_type(LEAVES)
-        if key_state[pg.K_7]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_7]:
             voxel_handler.set_voxel_type(WOOD)
-        if key_state[pg.K_8]:
-            voxel_handler = self.app.scene.world.voxel_handler
+        elif key_state[pg.K_8]:
             voxel_handler.set_voxel_type(GREEN_LEAF)
+
+
+def snap_to_ground(player, step=0.1, max_iterations=256):
+    """
+    Utility function to ensure the player's bounding box
+    is above the terrain at spawn. Moves upward until no collision.
+    """
+    count = 0
+    while count < max_iterations:
+        if not player.check_bounding_box_collision(player.position):
+            break
+        player.position.y += step
+        count += 1
