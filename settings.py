@@ -9,10 +9,10 @@ DEPTH_SIZE = 24
 NUM_SAMPLES = 1  # antialiasing
 
 # resolution
-WIN_RES = glm.vec2(1600, 900)
+WIN_RES = glm.vec2(2880, 1920)
 
 # world generation
-SEED = 18
+SEED = 1750
 
 # ray casting
 MAX_RAY_DIST = 6
