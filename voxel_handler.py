@@ -237,3 +237,67 @@ class VoxelHandler:
 
         voxel_id = chunk.voxels[voxel_index]
         return voxel_id, voxel_index, glm.ivec3(local_x, local_y, local_z), chunk
+
+    def get_floor_height(self, x, z):
+        """
+        Returns the highest solid voxel's top surface Y at the given (x, z).
+        If no solid voxel exists, returns None.
+
+        This naive approach loops from the top chunk (WORLD_H - 1) down
+        to the bottom chunk (0), and within each chunk from top voxel down
+        to bottom voxel in that chunk. If it finds a solid voxel, it returns
+        that voxel's top face (world_y + 1).
+        """
+
+        # 1) Convert x, z to integer coords (floor for negative as well)
+        x_int = int(glm.floor(x))
+        z_int = int(glm.floor(z))
+
+        # 2) Compute which chunk in the XZ plane
+        chunk_x = x_int // CHUNK_SIZE
+        chunk_z = z_int // CHUNK_SIZE
+
+        # 3) Check horizontal world bounds
+        if not (0 <= chunk_x < WORLD_W and 0 <= chunk_z < WORLD_D):
+            return None
+
+        # 4) Local x, z within the chunk
+        #    (Handle negative positions too; Python's % can yield negative remainders if x_int < 0)
+        local_x = x_int % CHUNK_SIZE
+        local_z = z_int % CHUNK_SIZE
+
+        # In case Python's modulo produced negative values, fix them:
+        if local_x < 0:
+            local_x += CHUNK_SIZE
+        if local_z < 0:
+            local_z += CHUNK_SIZE
+
+        # 5) Loop from the top chunk_y down to 0
+        for chunk_y in reversed(range(WORLD_H)):
+            chunk_index = chunk_x + (WORLD_W * chunk_z) + (WORLD_AREA * chunk_y)
+            chunk = self.chunks[chunk_index]
+            if chunk is None:
+                # This chunk hasn't been generated or is empty -> skip
+                continue
+
+            # 6) Loop from top of this chunk (CHUNK_SIZE - 1) down to 0
+            for local_y in reversed(range(CHUNK_SIZE)):
+                voxel_index = (
+                    local_x
+                    + (local_z * CHUNK_SIZE)
+                    + (local_y * CHUNK_AREA)
+                )
+
+                # Ensure we don’t go out of bounds in the voxel array
+                if not (0 <= voxel_index < len(chunk.voxels)):
+                    continue
+
+                voxel_id = chunk.voxels[voxel_index]
+                # 0 typically means "air" or "empty"
+                if voxel_id != 0:
+                    # Found a solid voxel. Return the top surface = (world_y + 1)
+                    world_y = chunk_y * CHUNK_SIZE + local_y
+                    return world_y + 1
+
+        # If we exhaust everything and find no solid block -> None
+        return None

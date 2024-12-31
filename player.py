@@ -3,36 +3,32 @@ import glm
 from camera import Camera
 from settings import *
 
-GRAVITY = 0.5
+GRAVITY = 0.1
 PLAYER_HALF_WIDTH = 0.3
 PLAYER_HEIGHT = 1.8
 HALF_HEIGHT = PLAYER_HEIGHT * 0.5
-JUMP_VELOCITY = 0.2
+JUMP_VELOCITY = 0.05
 
-# How high you can step up (in blocks). 1.0 => can step 1 block.
-STEP_OFFSET = 1.0  
+# Let’s reduce the step height to half a block
+STEP_OFFSET = 0.5
 
 class Player(Camera):
     def __init__(self, app, position=PLAYER_POS, yaw=-90, pitch=0):
-        """
-        We'll treat 'position' as the center of our bounding box.
-        """
         self.app = app
         super().__init__(position, yaw, pitch)
 
         self.velocity = glm.vec3(0, 0, 0)
         self.on_ground = False
+        self.gravity = True
 
     def update(self):
         self.keyboard_control()
         self.mouse_control()
-        self.apply_gravity()
+        if self.gravity:
+            self.apply_gravity()
         super().update()
 
     def apply_gravity(self):
-        """
-        Applies gravity using partial-snap so you don't embed in blocks.
-        """
         dt = self.app.delta_time * 0.001
         if not self.on_ground:
             self.velocity.y -= GRAVITY * dt
@@ -53,7 +49,7 @@ class Player(Camera):
                     # revert
                     test_y -= sign * step_size
                     break
-                # if we passed our proposed Y, stop
+                # break if we've reached or passed the intended new_position.y
                 if (sign < 0 and test_y <= new_position.y) or (sign > 0 and test_y >= new_position.y):
                     break
 
@@ -75,47 +71,119 @@ class Player(Camera):
 
     def move(self, direction, velocity):
         """
-        Attempts a horizontal move. If blocked by collision:
-          1) If on_ground, try to step up.
-          2) If still blocked, do nothing.
+        Attempts horizontal movement. If blocked, tries stepping up if:
+        1) There's an actual block in front at foot level
+        2) The terrain in front is truly higher than current foot level
+            (and within STEP_OFFSET).
+        If it's flat or downhill, we do a fallback horizontal move at the
+        current Y before giving up entirely.
         """
-        # 1) Build the new position for horizontal movement
         new_position = self.position + direction * velocity
+        
+        # 1) Normal horizontal attempt
         if not self.check_bounding_box_collision(new_position):
-            # no collision => accept move
             self.position = new_position
             return True
 
-        # 2) Collides. If not on_ground, can't step => blocked
+        # 2) Collides. If not on_ground, can't auto-step => blocked
         if not self.on_ground:
             return False
 
-        # 3) Attempt a step-up
-        #    - First, raise current position by STEP_OFFSET
-        step_pos = glm.vec3(self.position)
-        step_pos.y += STEP_OFFSET  # try stepping up 1 block
-        if self.check_bounding_box_collision(step_pos):
-            return False  # can't even step up, blocked above
+        # 3) Attempt a step-up if there's actually a block in front
+        if not self.is_block_in_front(direction, velocity):
+            return False
 
-        # 4) From the stepped position, move forward horizontally
-        step_pos += direction * velocity
-        if self.check_bounding_box_collision(step_pos):
-            return False  # blocked after stepping
+        current_foot_y = self.position.y - HALF_HEIGHT
+        front_floor_y = self.get_front_floor_height(direction, velocity)
+        slope = front_floor_y - current_foot_y
 
-        # 5) Succeeded. Snap player to stepped position
-        self.position = step_pos
-        return True
+        # 4) If slope > 0 and slope <= STEP_OFFSET, do step logic
+        if 0 < slope <= STEP_OFFSET:
+            step_pos = glm.vec3(self.position)
+            step_pos.y += slope
 
-    def check_bounding_box_collision(self, test_pos):
+            # If we collide overhead, skip
+            if self.check_bounding_box_collision(step_pos):
+                return False
+
+            # Move horizontally from stepped position
+            step_pos += direction * velocity
+            if self.check_bounding_box_collision(step_pos):
+                return False
+
+            # Success
+            self.position = step_pos
+            return True
+        
+        # 5) If slope <= 0 => It's flat or downhill. Try a "flat fallback"
+        #    We keep our current Y and only move XZ. Often the bounding box
+        #    won't collide if it's just a foot-corner glitch.
+        if slope <= 0:
+            temp_pos = glm.vec3(new_position.x, self.position.y, new_position.z)
+            if not self.check_bounding_box_collision(temp_pos):
+                self.position = temp_pos
+                return True
+
+        # 6) If we get here, we are blocked
+        return False
+
+
+    def is_block_in_front(self, direction, velocity):
         """
-        Checks collisions for all 8 corners of the bounding box:
-          2*PLAYER_HALF_WIDTH in XZ,
-          2*HALF_HEIGHT in Y,
-        centered at 'test_pos'.
+        Checks if there's a solid block at foot level directly in front.
+        This helps confirm the collision is from an actual block in front
+        rather than an angled corner or diagonal brush.
         """
         voxel_handler = self.app.scene.world.voxel_handler
 
-        # 8 corners
+        # For robustness, check multiple corners at foot level in front
+        foot_level_y = self.position.y - HALF_HEIGHT
+        foot_corners = [
+            glm.vec3(-PLAYER_HALF_WIDTH, 0, -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH, 0, -PLAYER_HALF_WIDTH),
+            glm.vec3( PLAYER_HALF_WIDTH, 0,  PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, 0,  PLAYER_HALF_WIDTH),
+        ]
+
+        for corner in foot_corners:
+            corner_world = glm.vec3(self.position.x, foot_level_y, self.position.z) + corner
+            corner_in_front = corner_world + direction * velocity
+            if voxel_handler.is_colliding(corner_in_front):
+                # Return True if we find a collision in front at foot level
+                return True
+        
+        return False
+
+    def get_front_floor_height(self, direction, velocity):
+        """
+        Returns the Y coordinate of the floor (block top) in front of the player,
+        at foot-level XZ + direction * velocity. If no block is found,
+        returns the player's current foot level (meaning it's flat/downhill).
+        
+        This requires a function like 'voxel_handler.get_floor_height(x, z)'
+        which you would implement to look up or raycast the top surface.
+        """
+        voxel_handler = self.app.scene.world.voxel_handler
+
+        # XZ in front
+        foot_level_pos = glm.vec3(self.position.x, self.position.y - HALF_HEIGHT, self.position.z)
+        front_xz = foot_level_pos + direction * velocity
+        x, z = front_xz.x, front_xz.z
+        
+        # Hypothetical function: get the terrain's top Y at (x, z)
+        # If your voxel system doesn't have such a function,
+        # you'll need to implement a raycast or block lookup yourself.
+        floor_y = voxel_handler.get_floor_height(x, z)
+        
+        # If we fail to find a block (e.g. air), return current foot level
+        if floor_y is None:
+            return foot_level_pos.y
+        
+        return floor_y
+
+    def check_bounding_box_collision(self, test_pos):
+        voxel_handler = self.app.scene.world.voxel_handler
+
         corners = [
             glm.vec3(-PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
             glm.vec3( PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
@@ -157,12 +225,12 @@ class Player(Camera):
         if self.on_ground:
             self.velocity.y = JUMP_VELOCITY
             self.on_ground = False
-            # optional small upward nudge:
+            # small upward nudge
             self.move(self.up, velocity)
 
     def mouse_control(self):
-        screen_width, screen_height = pg.display.get_surface().get_size()
-        center_x, center_y = screen_width // 2, screen_height // 2
+        screen_w, screen_h = pg.display.get_surface().get_size()
+        center_x, center_y = screen_w // 2, screen_h // 2
 
         mouse_dx, mouse_dy = pg.mouse.get_rel()
         if mouse_dx:
@@ -210,12 +278,16 @@ class Player(Camera):
             voxel_handler.set_voxel_type(WOOD)
         elif key_state[pg.K_8]:
             voxel_handler.set_voxel_type(GREEN_LEAF)
+        
+        # Toggle gravity
+        if key_state[pg.K_g]:
+            self.gravity = not self.gravity
 
 
 def snap_to_ground(player, step=0.1, max_iterations=256):
     """
     Utility function to ensure the player's bounding box
-    is above the terrain at spawn. Moves upward until no collision.
+    is above terrain at spawn. Moves up until no collision.
     """
     count = 0
     while count < max_iterations:
