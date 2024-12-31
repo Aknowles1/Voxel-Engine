@@ -18,6 +18,57 @@ class VoxelHandler:
         self.interaction_mode = 0  # 0: remove voxel   1: add voxel
         self.new_voxel_id = DIRT
 
+    def is_colliding(self, position):
+        """
+        Check if the given position collides with any voxel.
+
+        :param position: A glm.vec3 (float) representing the position to check.
+        :return: True if there is a collision, False otherwise.
+        """
+        # convert float position to integer block coords
+        voxel_world_pos = glm.ivec3(position)
+
+        # 1) Find the chunk indices (cx, cy, cz) by integer division
+        chunk_x = voxel_world_pos.x // CHUNK_SIZE
+        chunk_y = voxel_world_pos.y // CHUNK_SIZE
+        chunk_z = voxel_world_pos.z // CHUNK_SIZE
+
+        # 2) Check world bounds
+        if not (0 <= chunk_x < WORLD_W and
+                0 <= chunk_y < WORLD_H and
+                0 <= chunk_z < WORLD_D):
+            return False  # out of the generated world
+
+        # 3) Compute the 1D chunk index
+        chunk_index = chunk_x + (chunk_z * WORLD_W) + (chunk_y * WORLD_AREA)
+        chunk = self.chunks[chunk_index]
+        if chunk is None:
+            return False  # chunk not loaded or is None
+
+        # 4) Compute local voxel coords within the chunk
+        #    chunk.position is (cx, cy, cz) in chunk space, so:
+        world_chunk_origin = glm.ivec3(chunk.position) * CHUNK_SIZE
+        local_x = voxel_world_pos.x - world_chunk_origin.x
+        local_y = voxel_world_pos.y - world_chunk_origin.y
+        local_z = voxel_world_pos.z - world_chunk_origin.z
+
+        # 5) Range check (should be in [0..CHUNK_SIZE-1])
+        if not (0 <= local_x < CHUNK_SIZE and
+                0 <= local_y < CHUNK_SIZE and
+                0 <= local_z < CHUNK_SIZE):
+            return False
+
+        # 6) Compute 1D index into chunk.voxels
+        voxel_index = (local_x
+                       + local_y * CHUNK_SIZE
+                       + local_z * CHUNK_AREA)
+        if voxel_index < 0 or voxel_index >= len(chunk.voxels):
+            return False
+
+        voxel_id = chunk.voxels[voxel_index]
+        collision = (voxel_id != 0)
+        return collision
+
     def set_voxel_type(self, type_id):
         self.new_voxel_id = type_id
 
