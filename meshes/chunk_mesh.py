@@ -1,7 +1,6 @@
 from meshes.base_mesh import BaseMesh
 from meshes.chunk_mesh_builder import build_chunk_mesh
 
-
 class ChunkMesh(BaseMesh):
     def __init__(self, chunk):
         super().__init__()
@@ -19,10 +18,12 @@ class ChunkMesh(BaseMesh):
         self.vao = self.get_vao()
 
     def get_vertex_data(self):
+        # Here chunk.position is (cx, cy, cz),
+        # chunk.world.voxels is the entire big array of all chunk voxel data
         mesh = build_chunk_mesh(
             chunk_voxels=self.chunk.voxels,
             format_size=self.format_size,
-            chunk_pos=self.chunk.position,
+            chunk_pos=self.chunk.position,  # chunk-coord
             world_voxels=self.chunk.world.voxels
         )
         return mesh

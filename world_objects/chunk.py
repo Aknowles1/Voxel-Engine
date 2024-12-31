@@ -14,7 +14,7 @@ class Chunk:
         self.mesh: ChunkMesh = None
         self.is_empty = True
 
-        self.center = (glm.vec3(self.position) + 0.5) * CHUNK_SIZE
+        self.center = (glm.vec3(self.position)) * CHUNK_SIZE
         self.is_on_frustum = self.app.player.frustum.is_on_frustum
 
     def get_model_matrix(self):

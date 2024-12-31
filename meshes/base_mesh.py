@@ -18,6 +18,12 @@ class BaseMesh:
 
     def get_vao(self):
         vertex_data = self.get_vertex_data()
+        
+        # If empty, supply a 1-element dummy 1d array, so ModernGL wont complain.
+        if vertex_data.size == 0:
+            # For example, 1 uint32 element set to 0
+            vertex_data = np.zeros(1, dtype=np.uint32)
+
         vbo = self.ctx.buffer(vertex_data)
         vao = self.ctx.vertex_array(
             self.program, [(vbo, self.vbo_format, *self.attrs)], skip_errors=True

@@ -9,6 +9,7 @@ class CubeMesh(BaseMesh):
         self.ctx = self.app.ctx
         self.program = self.app.shader_program.voxel_marker
 
+        # For instance: '2f2 3f2' => 2 float tex coords + 3 float positions
         self.vbo_format = '2f2 3f2'
         self.attrs = ('in_tex_coord_0', 'in_position',)
         self.vao = self.get_vao()
@@ -33,6 +34,7 @@ class CubeMesh(BaseMesh):
         ]
         vertex_data = self.get_data(vertices, indices)
 
+        # optional: if you want texture coords
         tex_coord_vertices = [(0, 0), (1, 0), (1, 1), (0, 1)]
         tex_coord_indices = [
             (0, 2, 3), (0, 1, 2),
