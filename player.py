@@ -73,6 +73,8 @@ class Player(Camera):
                 voxel_handler.set_voxel()
             elif event.button == 3:
                 voxel_handler.switch_mode()
+                voxel_handler.set_voxel()
+                voxel_handler.switch_mode()
 
     def move_and_slide(self, direction, velocity):
         """
