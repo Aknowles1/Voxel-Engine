@@ -10,7 +10,7 @@ HALF_HEIGHT = PLAYER_HEIGHT * 0.5
 JUMP_VELOCITY = 0.05
 
 # Let’s reduce the step height to half a block
-STEP_OFFSET = 0.5
+STEP_OFFSET = 1
 
 class Player(Camera):
     def __init__(self, app, position=PLAYER_POS, yaw=-90, pitch=0):
