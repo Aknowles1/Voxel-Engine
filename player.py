@@ -4,10 +4,10 @@ from camera import Camera
 from settings import *
 
 GRAVITY = 0.1
-PLAYER_HALF_WIDTH = 0.3
+PLAYER_HALF_WIDTH = 0.2
 PLAYER_HEIGHT = 1.8
 HALF_HEIGHT = PLAYER_HEIGHT * 0.5
-JUMP_VELOCITY = 0.04
+JUMP_VELOCITY = 0.05
 EYE_OFFSET = glm.vec3(0, HALF_HEIGHT * 0.9, 0)
 
 
@@ -74,27 +74,44 @@ class Player(Camera):
             elif event.button == 3:
                 voxel_handler.switch_mode()
 
+    def move_and_slide(self, direction, velocity):
+        """
+        Moves the player horizontally in separate passes for X and Z,
+        allowing 'sliding' around obstacles.
+        Returns True if any movement happened, False if fully blocked.
+        """
+        old_position = glm.vec3(self.position)
+        
+        # 1) Move along X
+        self.position.x += direction.x * velocity
+        if self.check_bounding_box_collision(self.position):
+            self.position.x = old_position.x  # revert if collision
+
+        # 2) Move along Z
+        self.position.z += direction.z * velocity
+        if self.check_bounding_box_collision(self.position):
+            self.position.z = old_position.z  # revert if collision
+
+        # Check if we moved at all
+        moved_dist = glm.distance(old_position, self.position)
+        return moved_dist > 0.0001
+
     def move(self, direction, velocity):
         """
-        Attempts horizontal movement. If blocked, tries stepping up if:
-        1) There's an actual block in front at foot level
-        2) The terrain in front is truly higher than current foot level
-            (and within STEP_OFFSET).
-        If it's flat or downhill, we do a fallback horizontal move at the
-        current Y before giving up entirely.
+        Attempts movement in 'direction' * velocity, with step-up logic
+        if the forward path is blocked. 
         """
-        new_position = self.position + direction * velocity
-        
-        # 1) Normal horizontal attempt
-        if not self.check_bounding_box_collision(new_position):
-            self.position = new_position
+
+        # 1) First, try a normal move & slide
+        if self.move_and_slide(direction, velocity):
+            # we successfully moved at least some of the distance
             return True
 
-        # 2) Collides. If not on_ground, can't auto-step => blocked
+        # 2) If we get here, movement is fully blocked. Attempt step-up if on ground
         if not self.on_ground:
             return False
 
-        # 3) Attempt a step-up if there's actually a block in front
+        # 3) (Same logic as before) -> check if there's actually a block in front
         if not self.is_block_in_front(direction, velocity):
             return False
 
@@ -102,35 +119,28 @@ class Player(Camera):
         front_floor_y = self.get_front_floor_height(direction, velocity)
         slope = front_floor_y - current_foot_y
 
-        # 4) If slope > 0 and slope <= STEP_OFFSET, do step logic
         if 0 < slope <= STEP_OFFSET:
+            # Try stepping
             step_pos = glm.vec3(self.position)
             step_pos.y += slope
 
-            # If we collide overhead, skip
+            # Check overhead collision
             if self.check_bounding_box_collision(step_pos):
                 return False
 
-            # Move horizontally from stepped position
-            step_pos += direction * velocity
-            if self.check_bounding_box_collision(step_pos):
+            # Move horizontally from stepped position, again with move_and_slide
+            old_y = self.position.y
+            self.position.y += slope
+            if not self.move_and_slide(direction, velocity):
+                # revert to old Y
+                self.position.y = old_y
                 return False
 
-            # Success
-            self.position = step_pos
             return True
         
-        # 5) If slope <= 0 => It's flat or downhill. Try a "flat fallback"
-        #    We keep our current Y and only move XZ. Often the bounding box
-        #    won't collide if it's just a foot-corner glitch.
-        if slope <= 0:
-            temp_pos = glm.vec3(new_position.x, self.position.y, new_position.z)
-            if not self.check_bounding_box_collision(temp_pos):
-                self.position = temp_pos
-                return True
-
-        # 6) If we get here, we are blocked
+        # 4) If slope <= 0 or slope > STEP_OFFSET -> blocked
         return False
+
 
 
     def is_block_in_front(self, direction, velocity):

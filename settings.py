@@ -11,8 +11,8 @@ NUM_SAMPLES = 1  # antialiasing
 # resolution
 WIN_RES = glm.vec2(2880, 1920)
 
-# world generation
-SEED = 1750
+# world generation, set to 0 for random seed
+SEED = 18
 
 # ray casting
 MAX_RAY_DIST = 6
