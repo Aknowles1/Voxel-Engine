@@ -227,10 +227,12 @@ class Player(Camera):
         self.move(self.right, velocity)
 
     def move_up(self, velocity):
-        self.move(self.up, velocity)
+        if not self.gravity:
+            self.position += self.up * velocity
 
     def move_down(self, velocity):
-        self.move(-self.up, velocity)
+        if not self.gravity:
+            self.position -= self.up * velocity
 
     def move_forward(self, velocity):
         self.move(self.forward, velocity)
