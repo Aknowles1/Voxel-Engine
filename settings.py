@@ -9,10 +9,10 @@ DEPTH_SIZE = 24
 NUM_SAMPLES = 1  # antialiasing
 
 # resolution
-WIN_RES = glm.vec2(1920, 1080)
+WIN_RES = glm.vec2(2880, 1920)
 
 # world generation
-SEED = 96737
+SEED = 1750
 
 # ray casting
 MAX_RAY_DIST = 6
@@ -36,7 +36,7 @@ CENTER_Y = WORLD_H * H_CHUNK_SIZE
 
 # camera
 ASPECT_RATIO = WIN_RES.x / WIN_RES.y
-FOV_DEG = 50
+FOV_DEG = 90
 V_FOV = glm.radians(FOV_DEG)  # vertical FOV
 H_FOV = 2 * math.atan(math.tan(V_FOV * 0.5) * ASPECT_RATIO)  # horizontal FOV
 NEAR = 0.1
@@ -44,7 +44,7 @@ FAR = 2000.0
 PITCH_MAX = glm.radians(89)
 
 # player
-PLAYER_SPEED = 0.005
+PLAYER_SPEED = 0.01
 PLAYER_ROT_SPEED = 0.003
 # PLAYER_POS = glm.vec3(CENTER_XZ, WORLD_H * CHUNK_SIZE, CENTER_XZ)
 PLAYER_POS = glm.vec3(CENTER_XZ, CHUNK_SIZE, CENTER_XZ)
