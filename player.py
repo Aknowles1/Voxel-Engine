@@ -7,7 +7,9 @@ GRAVITY = 0.1
 PLAYER_HALF_WIDTH = 0.3
 PLAYER_HEIGHT = 1.8
 HALF_HEIGHT = PLAYER_HEIGHT * 0.5
-JUMP_VELOCITY = 0.05
+JUMP_VELOCITY = 0.04
+EYE_OFFSET = glm.vec3(0, HALF_HEIGHT * 0.9, 0)
+
 
 # Let’s reduce the step height to half a block
 STEP_OFFSET = 1
@@ -20,6 +22,9 @@ class Player(Camera):
         self.velocity = glm.vec3(0, 0, 0)
         self.on_ground = False
         self.gravity = True
+
+    def get_camera_position(self):
+        return self.position + EYE_OFFSET
 
     def update(self):
         self.keyboard_control()
