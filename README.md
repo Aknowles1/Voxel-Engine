@@ -41,7 +41,7 @@ A small, experimental voxel engine built with Python, ModernGL, PyGame, and PyGL
    - Simple cloud layer that drifts across the sky.
 
 5. **2D Hotbar/GUI**  
-   - Renders a quick \u201cicon-based\u201d inventory hotbar at the bottom of the screen.  
+   - Renders a quick icon-based inventory hotbar at the bottom of the screen.  
    - Demonstrates how to disable depth and use an orthographic projection for 2D elements.
 
 6. **Shader Program Management**  
