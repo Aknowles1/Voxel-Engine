@@ -81,9 +81,6 @@ A small, experimental voxel engine built with Python, ModernGL, PyGame, and PyGL
 - [ ] **Infinite Terrain**  
   - Dynamically generate and unload chunks around the player.
 
-- [ ] **Random Seed Generation**  
-  - Dynamically generate seeds for unique worlds.
-
 - [ ] **Improved Lighting**  
   - Add a basic directional light or ambient occlusion to make the world pop.
 
