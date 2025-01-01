@@ -28,4 +28,7 @@ class VoxelMarker:
     def render(self):
         if self.handler.voxel_id:
             self.set_uniform()
+            # Rebind marker texture at slot 3 so the shader sees it
+            # e.g. marker texture is self.app.textures.texture_0
+            self.app.textures.texture_0.use(location=3)
             self.mesh.render()

@@ -11,8 +11,8 @@ NUM_SAMPLES = 1  # antialiasing
 # resolution
 WIN_RES = glm.vec2(2880, 1920)
 
-# world generation
-SEED = 1750
+# world generation, set to 0 for random seed
+SEED = 4
 
 # ray casting
 MAX_RAY_DIST = 6
@@ -63,6 +63,7 @@ LEAVES = 6
 WOOD = 7
 GREEN_LEAF = 8
 
+
 # terrain levels
 SNOW_LVL = 54
 STONE_LVL = 49
@@ -82,3 +83,11 @@ WATER_AREA = 5 * CHUNK_SIZE * WORLD_W
 # cloud
 CLOUD_SCALE = 25
 CLOUD_HEIGHT = WORLD_H * CHUNK_SIZE * 2
+
+# BLOCK_ICONS = {
+#     SAND: pg.image.load("assets/icons/sand_icon.png"),
+#     GRASS: pg.image.load("assets/icons/grass_icon.png"),
+#     DIRT: pg.image.load("assets/icons/dirt_icon.png"),
+#     STONE: pg.image.load("assets/icons/stone_icon.png"),
+#     # ... etc ...
+# }

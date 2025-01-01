@@ -1,6 +1,9 @@
 from settings import *
 from frustum import Frustum
 
+PLAYER_HEIGHT = 1.8
+HALF_HEIGHT = PLAYER_HEIGHT * 0.5
+EYE_OFFSET = glm.vec3(0, HALF_HEIGHT * 0.9, 0)
 
 class Camera:
     def __init__(self, position, yaw, pitch):
@@ -24,6 +27,9 @@ class Camera:
     def update_view_matrix(self):
         eye_pos = self.get_camera_position()
         self.m_view = glm.lookAt(eye_pos, eye_pos + self.forward, self.up)
+
+    def get_camera_position(self):
+        return self.position + EYE_OFFSET
 
     def update_vectors(self):
         self.forward.x = glm.cos(self.yaw) * glm.cos(self.pitch)
