@@ -129,19 +129,19 @@ class VoxelEngine:
         gap = 10
         block_types = [SAND, GRASS, DIRT, STONE, SNOW, LEAVES, WOOD, GREEN_LEAF]
 
+        # Figure out the hotbar dimensions
         hotbar_width = len(block_types) * (icon_size + gap) + gap
         hotbar_x = (screen_w - hotbar_width) // 2
         hotbar_y = 30
-        hotbar_height = icon_size + gap * 2  # total height including top & bottom gap
+        hotbar_height = icon_size + gap * 2
 
         # ---------------------------
         # 1) Dark Grey Outer Border
         # ---------------------------
         border_color = (0.3, 0.3, 0.3, 1.0)  # RGBA
-        border_thickness = 12.0   # thickness of the dark border
-        outer_pad = 5.0          # spacing around the bar
+        border_thickness = 12.0
+        outer_pad = 5.0
 
-        # The outer border is slightly bigger than the hotbar background
         outer_offset = struct.pack(
             '2f',
             hotbar_x - outer_pad - border_thickness,
@@ -162,8 +162,7 @@ class VoxelEngine:
         # ---------------------------
         # 2) Lighter Grey Background
         # ---------------------------
-        bg_color = (0.5, 0.5, 0.5, 1.0)  # RGBA
-        # The inner background is slightly smaller and sits inside the border
+        bg_color = (0.5, 0.5, 0.5, 1.0)
         bg_offset = struct.pack('2f', hotbar_x - outer_pad, hotbar_y - outer_pad)
         bg_scale = struct.pack(
             '2f',
@@ -177,40 +176,62 @@ class VoxelEngine:
         self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
         # --------------------------------
-        # 3) Draw icons + highlight
+        # 3) Draw icons (plus highlight and per-icon border)
         # --------------------------------
         selected_block = self.scene.world.voxel_handler.new_voxel_id
         x_cursor = hotbar_x + gap
         y_cursor = hotbar_y + gap
 
         for b_type in block_types:
-            # If this item is selected, draw highlight behind the icon
+            # Optional highlight if selected
             is_selected = (b_type == selected_block)
             if is_selected:
                 prog['u_use_texture'].value = False
                 prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 0.3))  # White, 30% alpha
-
                 pad = 5.0
                 offset = struct.pack('2f', x_cursor - pad, y_cursor - pad)
                 scale = struct.pack('2f', icon_size + pad * 2, icon_size + pad * 2)
-
                 prog['u_offset'].write(offset)
                 prog['u_scale'].write(scale)
                 self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
-            # Draw the icon itself
+            # 3a) Draw a thin dark-grey border around the icon
+            #     You can do this *before* or *after* the highlight—whichever you prefer
+            icon_border_color = (0.2, 0.2, 0.2, 1.0)
+            icon_border_thickness = 2.0  # thickness of the per-icon border
+
+            prog['u_use_texture'].value = False
+            prog['u_color'].write(struct.pack('4f', *icon_border_color))
+
+            border_offset = struct.pack(
+                '2f',
+                x_cursor - icon_border_thickness,
+                y_cursor - icon_border_thickness
+            )
+            border_scale = struct.pack(
+                '2f',
+                icon_size + icon_border_thickness * 2,
+                icon_size + icon_border_thickness * 2
+            )
+
+            prog['u_offset'].write(border_offset)
+            prog['u_scale'].write(border_scale)
+            self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
+
+            # 3b) Draw the actual icon
             tex = self.get_icon_texture(b_type)
             tex.use(location=0)
+
             prog['u_use_texture'].value = True
             prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 1.0))
             prog['u_offset'].write(struct.pack('2f', x_cursor, y_cursor))
             prog['u_scale'].write(struct.pack('2f', icon_size, icon_size))
-
             self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
             x_cursor += icon_size + gap
 
         self.ctx.enable(mgl.DEPTH_TEST)
+
 
 
 
