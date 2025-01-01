@@ -123,62 +123,96 @@ class VoxelEngine:
 
         prog = self.gui2d_program
         prog['u_proj'].write(ortho.to_bytes())
-        prog['u_texture'].value = 0  # texture unit index
+        prog['u_texture'].value = 0
 
-        icon_size = 64 * 1.75
+        icon_size = 64 * 1.5
         gap = 10
         block_types = [SAND, GRASS, DIRT, STONE, SNOW, LEAVES, WOOD, GREEN_LEAF]
 
         hotbar_width = len(block_types) * (icon_size + gap) + gap
         hotbar_x = (screen_w - hotbar_width) // 2
         hotbar_y = 30
+        hotbar_height = icon_size + gap * 2  # total height including top & bottom gap
 
+        # ---------------------------
+        # 1) Dark Grey Outer Border
+        # ---------------------------
+        border_color = (0.3, 0.3, 0.3, 1.0)  # RGBA
+        border_thickness = 12.0   # thickness of the dark border
+        outer_pad = 5.0          # spacing around the bar
+
+        # The outer border is slightly bigger than the hotbar background
+        outer_offset = struct.pack(
+            '2f',
+            hotbar_x - outer_pad - border_thickness,
+            hotbar_y - outer_pad - border_thickness
+        )
+        outer_scale = struct.pack(
+            '2f',
+            hotbar_width + (outer_pad + border_thickness) * 2,
+            hotbar_height + (outer_pad + border_thickness) * 2
+        )
+
+        prog['u_use_texture'].value = False
+        prog['u_color'].write(struct.pack('4f', *border_color))
+        prog['u_offset'].write(outer_offset)
+        prog['u_scale'].write(outer_scale)
+        self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
+
+        # ---------------------------
+        # 2) Lighter Grey Background
+        # ---------------------------
+        bg_color = (0.5, 0.5, 0.5, 1.0)  # RGBA
+        # The inner background is slightly smaller and sits inside the border
+        bg_offset = struct.pack('2f', hotbar_x - outer_pad, hotbar_y - outer_pad)
+        bg_scale = struct.pack(
+            '2f',
+            hotbar_width + outer_pad * 2,
+            hotbar_height + outer_pad * 2
+        )
+
+        prog['u_color'].write(struct.pack('4f', *bg_color))
+        prog['u_offset'].write(bg_offset)
+        prog['u_scale'].write(bg_scale)
+        self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
+
+        # --------------------------------
+        # 3) Draw icons + highlight
+        # --------------------------------
         selected_block = self.scene.world.voxel_handler.new_voxel_id
-
         x_cursor = hotbar_x + gap
         y_cursor = hotbar_y + gap
 
         for b_type in block_types:
-            # Check if this item is selected
+            # If this item is selected, draw highlight behind the icon
             is_selected = (b_type == selected_block)
-
-            # If selected, draw a highlight quad *behind* the icon
             if is_selected:
-                # We won't sample from the texture (color-only quad)
-                prog['u_use_texture'].value = False  
-                # A nice RGBA highlight color: white with 30% alpha
-                prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 0.3))
+                prog['u_use_texture'].value = False
+                prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 0.3))  # White, 30% alpha
 
-                # Make it slightly bigger: e.g. 5px padding around each edge
                 pad = 5.0
                 offset = struct.pack('2f', x_cursor - pad, y_cursor - pad)
-                scale  = struct.pack('2f', icon_size + pad*2, icon_size + pad*2)
+                scale = struct.pack('2f', icon_size + pad * 2, icon_size + pad * 2)
 
                 prog['u_offset'].write(offset)
                 prog['u_scale'].write(scale)
-
-                # render the colored quad
                 self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
-            # Now draw the icon as normal
+            # Draw the icon itself
             tex = self.get_icon_texture(b_type)
             tex.use(location=0)
-
-            # Switch back to using the texture
             prog['u_use_texture'].value = True
-            # We can pick a neutral color if you want (just in case),
-            # but it won't matter if we're sampling the texture fully.
             prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 1.0))
-
             prog['u_offset'].write(struct.pack('2f', x_cursor, y_cursor))
             prog['u_scale'].write(struct.pack('2f', icon_size, icon_size))
 
-            # render the icon
             self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
             x_cursor += icon_size + gap
 
         self.ctx.enable(mgl.DEPTH_TEST)
+
+
 
 
 if __name__ == '__main__':
