@@ -15,7 +15,9 @@ class VoxelEngine:
         pg.init()
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, MAJOR_VER)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, MINOR_VER)
-        pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE)
+        pg.display.gl_set_attribute(
+            pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE
+        )
         pg.display.gl_set_attribute(pg.GL_DEPTH_SIZE, DEPTH_SIZE)
         pg.display.gl_set_attribute(pg.GL_MULTISAMPLESAMPLES, NUM_SAMPLES)
 
@@ -23,7 +25,7 @@ class VoxelEngine:
         self.ctx = mgl.create_context()
 
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE | mgl.BLEND)
-        self.ctx.gc_mode = 'auto'
+        self.ctx.gc_mode = "auto"
 
         self.clock = pg.time.Clock()
         self.delta_time = 0
@@ -41,7 +43,9 @@ class VoxelEngine:
         self.shader_program = ShaderProgram(self)
         self.scene = Scene(self)
         self.gui2d_program = self.shader_program.gui2d
-        self.gui_quad_vao, self.gui_quad_vbo = create_2d_quad(self.ctx, self.gui2d_program)
+        self.gui_quad_vao, self.gui_quad_vbo = create_2d_quad(
+            self.ctx, self.gui2d_program
+        )
 
         # We'll also store a dict for icons => mgl.Textures
         self.icon_textures = {}
@@ -54,7 +58,7 @@ class VoxelEngine:
 
         self.delta_time = self.clock.tick()
         self.time = pg.time.get_ticks() * 0.001
-        pg.display.set_caption(f'{self.clock.get_fps() :.0f}')
+        pg.display.set_caption(f"{self.clock.get_fps() :.0f}")
 
     def render(self):
         self.ctx.clear(color=BG_COLOR)
@@ -64,7 +68,9 @@ class VoxelEngine:
 
     def handle_events(self):
         for event in pg.event.get():
-            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+            if event.type == pg.QUIT or (
+                event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE
+            ):
                 self.is_running = False
             self.player.handle_event(event=event)
 
@@ -78,7 +84,7 @@ class VoxelEngine:
 
     def get_icon_texture(self, block_type):
         """
-        Convert a Pygame surface (e.g. 'assets/icons/foo.png') to an mgl.Texture 
+        Convert a Pygame surface (e.g. 'assets/icons/foo.png') to an mgl.Texture
         on first use, then cache it in self.icon_textures.
         """
         if block_type in self.icon_textures:
@@ -93,19 +99,21 @@ class VoxelEngine:
             SNOW: "snow.png",
             LEAVES: "leaves.png",
             WOOD: "wood.png",
-            GREEN_LEAF: "green_leaf.png"       
-        }.get(block_type, "sand.png")  # default to sand if missing
+            GREEN_LEAF: "green_leaf.png",
+        }.get(
+            block_type, "sand.png"
+        )  # default to sand if missing
 
         try:
             surf = pg.image.load(f"assets/icons/{file_name}").convert_alpha()
         except Exception as e:
             print("Failed to load icon:", e)
-        # Flip or not, depending on your preference. 
+        # Flip or not, depending on your preference.
         # Usually we do flip(True, False) if we want 0,0 at bottom-left:
         surf = pg.transform.flip(surf, True, False)
 
         w, h = surf.get_size()
-        raw_data = pg.image.tostring(surf, 'RGBA', False)
+        raw_data = pg.image.tostring(surf, "RGBA", False)
 
         # Create an mgl.Texture2D
         tex = self.ctx.texture((w, h), 4, raw_data)
@@ -114,7 +122,7 @@ class VoxelEngine:
 
         self.icon_textures[block_type] = tex
         return tex
-    
+
     def draw_hotbar_2d(self):
         self.ctx.disable(mgl.DEPTH_TEST)
 
@@ -122,8 +130,8 @@ class VoxelEngine:
         ortho = glm.ortho(0, screen_w, 0, screen_h, -1, 1)
 
         prog = self.gui2d_program
-        prog['u_proj'].write(ortho.to_bytes())
-        prog['u_texture'].value = 0
+        prog["u_proj"].write(ortho.to_bytes())
+        prog["u_texture"].value = 0
 
         icon_size = 64 * 1.5
         gap = 10
@@ -143,36 +151,34 @@ class VoxelEngine:
         outer_pad = 5.0
 
         outer_offset = struct.pack(
-            '2f',
+            "2f",
             hotbar_x - outer_pad - border_thickness,
-            hotbar_y - outer_pad - border_thickness
+            hotbar_y - outer_pad - border_thickness,
         )
         outer_scale = struct.pack(
-            '2f',
+            "2f",
             hotbar_width + (outer_pad + border_thickness) * 2,
-            hotbar_height + (outer_pad + border_thickness) * 2
+            hotbar_height + (outer_pad + border_thickness) * 2,
         )
 
-        prog['u_use_texture'].value = False
-        prog['u_color'].write(struct.pack('4f', *border_color))
-        prog['u_offset'].write(outer_offset)
-        prog['u_scale'].write(outer_scale)
+        prog["u_use_texture"].value = False
+        prog["u_color"].write(struct.pack("4f", *border_color))
+        prog["u_offset"].write(outer_offset)
+        prog["u_scale"].write(outer_scale)
         self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
         # ---------------------------
         # 2) Lighter Grey Background
         # ---------------------------
         bg_color = (0.5, 0.5, 0.5, 1.0)
-        bg_offset = struct.pack('2f', hotbar_x - outer_pad, hotbar_y - outer_pad)
+        bg_offset = struct.pack("2f", hotbar_x - outer_pad, hotbar_y - outer_pad)
         bg_scale = struct.pack(
-            '2f',
-            hotbar_width + outer_pad * 2,
-            hotbar_height + outer_pad * 2
+            "2f", hotbar_width + outer_pad * 2, hotbar_height + outer_pad * 2
         )
 
-        prog['u_color'].write(struct.pack('4f', *bg_color))
-        prog['u_offset'].write(bg_offset)
-        prog['u_scale'].write(bg_scale)
+        prog["u_color"].write(struct.pack("4f", *bg_color))
+        prog["u_offset"].write(bg_offset)
+        prog["u_scale"].write(bg_scale)
         self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
         # --------------------------------
@@ -184,15 +190,17 @@ class VoxelEngine:
 
         for b_type in block_types:
             # Optional highlight if selected
-            is_selected = (b_type == selected_block)
+            is_selected = b_type == selected_block
             if is_selected:
-                prog['u_use_texture'].value = False
-                prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 0.3))  # White, 30% alpha
+                prog["u_use_texture"].value = False
+                prog["u_color"].write(
+                    struct.pack("4f", 1.0, 1.0, 1.0, 0.3)
+                )  # White, 30% alpha
                 pad = 5.0
-                offset = struct.pack('2f', x_cursor - pad, y_cursor - pad)
-                scale = struct.pack('2f', icon_size + pad * 2, icon_size + pad * 2)
-                prog['u_offset'].write(offset)
-                prog['u_scale'].write(scale)
+                offset = struct.pack("2f", x_cursor - pad, y_cursor - pad)
+                scale = struct.pack("2f", icon_size + pad * 2, icon_size + pad * 2)
+                prog["u_offset"].write(offset)
+                prog["u_scale"].write(scale)
                 self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
             # 3a) Draw a thin dark-grey border around the icon
@@ -200,32 +208,30 @@ class VoxelEngine:
             icon_border_color = (0.2, 0.2, 0.2, 1.0)
             icon_border_thickness = 2.0  # thickness of the per-icon border
 
-            prog['u_use_texture'].value = False
-            prog['u_color'].write(struct.pack('4f', *icon_border_color))
+            prog["u_use_texture"].value = False
+            prog["u_color"].write(struct.pack("4f", *icon_border_color))
 
             border_offset = struct.pack(
-                '2f',
-                x_cursor - icon_border_thickness,
-                y_cursor - icon_border_thickness
+                "2f", x_cursor - icon_border_thickness, y_cursor - icon_border_thickness
             )
             border_scale = struct.pack(
-                '2f',
+                "2f",
                 icon_size + icon_border_thickness * 2,
-                icon_size + icon_border_thickness * 2
+                icon_size + icon_border_thickness * 2,
             )
 
-            prog['u_offset'].write(border_offset)
-            prog['u_scale'].write(border_scale)
+            prog["u_offset"].write(border_offset)
+            prog["u_scale"].write(border_scale)
             self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
             # 3b) Draw the actual icon
             tex = self.get_icon_texture(b_type)
             tex.use(location=0)
 
-            prog['u_use_texture'].value = True
-            prog['u_color'].write(struct.pack('4f', 1.0, 1.0, 1.0, 1.0))
-            prog['u_offset'].write(struct.pack('2f', x_cursor, y_cursor))
-            prog['u_scale'].write(struct.pack('2f', icon_size, icon_size))
+            prog["u_use_texture"].value = True
+            prog["u_color"].write(struct.pack("4f", 1.0, 1.0, 1.0, 1.0))
+            prog["u_offset"].write(struct.pack("2f", x_cursor, y_cursor))
+            prog["u_scale"].write(struct.pack("2f", icon_size, icon_size))
             self.gui_quad_vao.render(mode=mgl.TRIANGLE_FAN)
 
             x_cursor += icon_size + gap
@@ -233,9 +239,6 @@ class VoxelEngine:
         self.ctx.enable(mgl.DEPTH_TEST)
 
 
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = VoxelEngine()
     app.run()

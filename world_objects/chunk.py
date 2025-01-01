@@ -22,7 +22,7 @@ class Chunk:
         return m_model
 
     def set_uniform(self):
-        self.mesh.program['m_model'].write(self.m_model)
+        self.mesh.program["m_model"].write(self.m_model)
 
     def build_mesh(self):
         self.mesh = ChunkMesh(self)
@@ -33,7 +33,7 @@ class Chunk:
             self.mesh.render()
 
     def build_voxels(self):
-        voxels = np.zeros(CHUNK_VOL, dtype='uint8')
+        voxels = np.zeros(CHUNK_VOL, dtype="uint8")
 
         cx, cy, cz = glm.ivec3(self.position) * CHUNK_SIZE
         self.generate_terrain(voxels, cx, cy, cz)

@@ -6,7 +6,7 @@ import math
 # OpenGL settings
 MAJOR_VER, MINOR_VER = 3, 3
 DEPTH_SIZE = 24
-NUM_SAMPLES = 1  # antialiasing
+NUM_SAMPLES = 4  # antialiasing
 
 # resolution
 WIN_RES = glm.vec2(2880, 1920)

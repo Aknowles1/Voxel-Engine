@@ -4,6 +4,7 @@ from settings import *
 from meshes.chunk_mesh_builder import get_chunk_index
 import glm
 
+
 class VoxelHandler:
     def __init__(self, world):
         self.app = world.app
@@ -28,16 +29,16 @@ class VoxelHandler:
         """
         # Convert float position to an integer world-space block position.
         voxel_world_pos = glm.ivec3(
-            glm.floor(position.x),
-            glm.floor(position.y),
-            glm.floor(position.z)
+            glm.floor(position.x), glm.floor(position.y), glm.floor(position.z)
         )
 
         # Get the chunk index from the world-space block coords
         chunk_index = get_chunk_index(voxel_world_pos)
 
         if debug:
-            print(f"[is_colliding] Checking: {position} -> world block {voxel_world_pos}")
+            print(
+                f"[is_colliding] Checking: {position} -> world block {voxel_world_pos}"
+            )
             print(f"[is_colliding] Chunk index = {chunk_index}")
 
         # If chunk index is out of world bounds, no collision in your finite world.
@@ -60,11 +61,15 @@ class VoxelHandler:
             print(f"[is_colliding] Local pos = {local_pos}")
 
         # Range check for local coords
-        if not (0 <= local_pos.x < CHUNK_SIZE and
-                0 <= local_pos.y < CHUNK_SIZE and
-                0 <= local_pos.z < CHUNK_SIZE):
+        if not (
+            0 <= local_pos.x < CHUNK_SIZE
+            and 0 <= local_pos.y < CHUNK_SIZE
+            and 0 <= local_pos.z < CHUNK_SIZE
+        ):
             if debug:
-                print("[is_colliding] Local position out of chunk bounds -> no collision")
+                print(
+                    "[is_colliding] Local position out of chunk bounds -> no collision"
+                )
             return False
 
         # -------------------------------
@@ -83,7 +88,7 @@ class VoxelHandler:
         voxel_id = chunk.voxels[voxel_index]
 
         # Zero typically means "air" or "empty"
-        collision = (voxel_id != 0)
+        collision = voxel_id != 0
 
         if debug:
             print(f"[is_colliding] voxel_id={voxel_id}, collision={collision}")
@@ -176,7 +181,9 @@ class VoxelHandler:
         while not (max_x > 1.0 and max_y > 1.0 and max_z > 1.0):
             result = self.get_voxel_id(voxel_world_pos=current_voxel_pos)
             if result[0]:
-                self.voxel_id, self.voxel_index, self.voxel_local_pos, self.chunk = result
+                self.voxel_id, self.voxel_index, self.voxel_local_pos, self.chunk = (
+                    result
+                )
                 self.voxel_world_pos = current_voxel_pos
 
                 # Figure out the face normal from which side we stepped
@@ -214,7 +221,9 @@ class VoxelHandler:
         chunk_y = voxel_world_pos.y // CHUNK_SIZE
         chunk_z = voxel_world_pos.z // CHUNK_SIZE
 
-        if not (0 <= chunk_x < WORLD_W and 0 <= chunk_y < WORLD_H and 0 <= chunk_z < WORLD_D):
+        if not (
+            0 <= chunk_x < WORLD_W and 0 <= chunk_y < WORLD_H and 0 <= chunk_z < WORLD_D
+        ):
             return 0, 0, glm.ivec3(0), None
 
         chunk_index = chunk_x + WORLD_W * chunk_z + WORLD_AREA * chunk_y
@@ -226,9 +235,11 @@ class VoxelHandler:
         local_y = voxel_world_pos.y - (chunk_y * CHUNK_SIZE)
         local_z = voxel_world_pos.z - (chunk_z * CHUNK_SIZE)
 
-        if not (0 <= local_x < CHUNK_SIZE and
-                0 <= local_y < CHUNK_SIZE and
-                0 <= local_z < CHUNK_SIZE):
+        if not (
+            0 <= local_x < CHUNK_SIZE
+            and 0 <= local_y < CHUNK_SIZE
+            and 0 <= local_z < CHUNK_SIZE
+        ):
             return 0, 0, glm.ivec3(0), None
 
         voxel_index = local_x + (local_z * CHUNK_SIZE) + (local_y * CHUNK_AREA)
@@ -282,11 +293,7 @@ class VoxelHandler:
 
             # 6) Loop from top of this chunk (CHUNK_SIZE - 1) down to 0
             for local_y in reversed(range(CHUNK_SIZE)):
-                voxel_index = (
-                    local_x
-                    + (local_z * CHUNK_SIZE)
-                    + (local_y * CHUNK_AREA)
-                )
+                voxel_index = local_x + (local_z * CHUNK_SIZE) + (local_y * CHUNK_AREA)
 
                 # Ensure we don’t go out of bounds in the voxel array
                 if not (0 <= voxel_index < len(chunk.voxels)):

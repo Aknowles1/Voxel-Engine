@@ -5,6 +5,7 @@ from world_objects.voxel_marker import VoxelMarker
 from world_objects.water import Water
 from world_objects.clouds import Clouds
 
+
 class Scene:
     def __init__(self, app):
         self.app = app

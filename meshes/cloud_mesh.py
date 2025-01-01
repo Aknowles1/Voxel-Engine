@@ -10,12 +10,12 @@ class CloudMesh(BaseMesh):
 
         self.ctx = self.app.ctx
         self.program = self.app.shader_program.clouds
-        self.vbo_format = '3u2'
-        self.attrs = ('in_position',)
+        self.vbo_format = "3u2"
+        self.attrs = ("in_position",)
         self.vao = self.get_vao()
 
     def get_vertex_data(self):
-        cloud_data = np.zeros(WORLD_AREA * CHUNK_SIZE ** 2, dtype='uint8')
+        cloud_data = np.zeros(WORLD_AREA * CHUNK_SIZE**2, dtype="uint8")
         self.gen_clouds(cloud_data)
 
         return self.build_mesh(cloud_data)
@@ -33,7 +33,7 @@ class CloudMesh(BaseMesh):
     @staticmethod
     @njit
     def build_mesh(cloud_data):
-        mesh = np.empty(WORLD_AREA * CHUNK_AREA * 6 * 3, dtype='uint16')
+        mesh = np.empty(WORLD_AREA * CHUNK_AREA * 6 * 3, dtype="uint16")
         index = 0
         width = WORLD_W * CHUNK_SIZE
         depth = WORLD_D * CHUNK_SIZE
@@ -60,7 +60,9 @@ class CloudMesh(BaseMesh):
                 for ix in range(x_count):
                     z_count = 1
                     idx = (x + ix) + width * (z + z_count)
-                    while (z + z_count) < depth and cloud_data[idx] and idx not in visited:
+                    while (
+                        (z + z_count) < depth and cloud_data[idx] and idx not in visited
+                    ):
                         z_count += 1
                         idx = (x + ix) + width * (z + z_count)
                     z_count_list.append(z_count)
@@ -83,5 +85,5 @@ class CloudMesh(BaseMesh):
                         mesh[index] = attr
                         index += 1
 
-        mesh = mesh[:index + 1]
+        mesh = mesh[: index + 1]
         return mesh

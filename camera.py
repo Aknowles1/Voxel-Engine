@@ -5,6 +5,7 @@ PLAYER_HEIGHT = 1.8
 HALF_HEIGHT = PLAYER_HEIGHT * 0.5
 EYE_OFFSET = glm.vec3(0, HALF_HEIGHT * 0.9, 0)
 
+
 class Camera:
     def __init__(self, position, yaw, pitch):
         self.position = glm.vec3(position)
@@ -66,5 +67,4 @@ class Camera:
         self.position -= self.forward * velocity
 
     def move_jump(self, velocity):
-        self.position += self.up*2 * velocity
-    
+        self.position += self.up * 2 * velocity

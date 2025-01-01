@@ -27,7 +27,7 @@ def get_height(x, z):
     height += noise2(x * f4, z * f4) * a4 + a4
     height += noise2(x * f8, z * f8) * a8 - a8
 
-    height = max(height,  noise2(x * f8, z * f8) + 2)
+    height = max(height, noise2(x * f8, z * f8) + 2)
     height *= island
 
     return int(height)
@@ -44,8 +44,10 @@ def set_voxel_id(voxels, x, y, z, wx, wy, wz, world_height):
 
     if wy < world_height - 1:
         # create caves
-        if (noise3(wx * 0.09, wy * 0.09, wz * 0.09) > 0 and
-                noise2(wx * 0.1, wz * 0.1) * 3 + 3 < wy < world_height - 10):
+        if (
+            noise3(wx * 0.09, wy * 0.09, wz * 0.09) > 0
+            and noise2(wx * 0.1, wz * 0.1) * 3 + 3 < wy < world_height - 10
+        ):
             voxel_id = 0
 
         else:
@@ -77,7 +79,7 @@ def set_voxel_id(voxels, x, y, z, wx, wy, wz, world_height):
         if rando == 0:
             place_pink_tree(voxels, x, y, z, voxel_id)
         elif rando == 1:
-            place_green_tree(voxels, x, y, z, voxel_id)        
+            place_green_tree(voxels, x, y, z, voxel_id)
 
 
 # @njit
@@ -113,6 +115,7 @@ def set_voxel_id(voxels, x, y, z, wx, wy, wz, world_height):
 #     # top
 #     voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = LEAVES
 
+
 @njit
 def place_pink_tree(voxels, x, y, z, voxel_id):
     rnd = random()
@@ -145,6 +148,7 @@ def place_pink_tree(voxels, x, y, z, voxel_id):
 
     # top
     voxels[get_index(x, y + TREE_HEIGHT - 2, z)] = LEAVES
+
 
 @njit
 def place_green_tree(voxels, x, y, z, voxel_id):

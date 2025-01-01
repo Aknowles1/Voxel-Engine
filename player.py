@@ -14,6 +14,7 @@ EYE_OFFSET = glm.vec3(0, HALF_HEIGHT * 0.9, 0)
 # Let’s reduce the step height to half a block
 STEP_OFFSET = 1
 
+
 class Player(Camera):
     def __init__(self, app, position=PLAYER_POS, yaw=-90, pitch=0):
         self.app = app
@@ -55,7 +56,9 @@ class Player(Camera):
                     test_y -= sign * step_size
                     break
                 # break if we've reached or passed the intended new_position.y
-                if (sign < 0 and test_y <= new_position.y) or (sign > 0 and test_y >= new_position.y):
+                if (sign < 0 and test_y <= new_position.y) or (
+                    sign > 0 and test_y >= new_position.y
+                ):
                     break
 
             self.position.y = test_y
@@ -83,7 +86,7 @@ class Player(Camera):
         Returns True if any movement happened, False if fully blocked.
         """
         old_position = glm.vec3(self.position)
-        
+
         # 1) Move along X
         self.position.x += direction.x * velocity
         if self.check_bounding_box_collision(self.position):
@@ -101,7 +104,7 @@ class Player(Camera):
     def move(self, direction, velocity):
         """
         Attempts movement in 'direction' * velocity, with step-up logic
-        if the forward path is blocked. 
+        if the forward path is blocked.
         """
 
         # 1) First, try a normal move & slide
@@ -139,11 +142,9 @@ class Player(Camera):
                 return False
 
             return True
-        
+
         # 4) If slope <= 0 or slope > STEP_OFFSET -> blocked
         return False
-
-
 
     def is_block_in_front(self, direction, velocity):
         """
@@ -157,18 +158,20 @@ class Player(Camera):
         foot_level_y = self.position.y - HALF_HEIGHT
         foot_corners = [
             glm.vec3(-PLAYER_HALF_WIDTH, 0, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, 0, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, 0,  PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, 0,  PLAYER_HALF_WIDTH),
+            glm.vec3(PLAYER_HALF_WIDTH, 0, -PLAYER_HALF_WIDTH),
+            glm.vec3(PLAYER_HALF_WIDTH, 0, PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, 0, PLAYER_HALF_WIDTH),
         ]
 
         for corner in foot_corners:
-            corner_world = glm.vec3(self.position.x, foot_level_y, self.position.z) + corner
+            corner_world = (
+                glm.vec3(self.position.x, foot_level_y, self.position.z) + corner
+            )
             corner_in_front = corner_world + direction * velocity
             if voxel_handler.is_colliding(corner_in_front):
                 # Return True if we find a collision in front at foot level
                 return True
-        
+
         return False
 
     def get_front_floor_height(self, direction, velocity):
@@ -176,26 +179,28 @@ class Player(Camera):
         Returns the Y coordinate of the floor (block top) in front of the player,
         at foot-level XZ + direction * velocity. If no block is found,
         returns the player's current foot level (meaning it's flat/downhill).
-        
+
         This requires a function like 'voxel_handler.get_floor_height(x, z)'
         which you would implement to look up or raycast the top surface.
         """
         voxel_handler = self.app.scene.world.voxel_handler
 
         # XZ in front
-        foot_level_pos = glm.vec3(self.position.x, self.position.y - HALF_HEIGHT, self.position.z)
+        foot_level_pos = glm.vec3(
+            self.position.x, self.position.y - HALF_HEIGHT, self.position.z
+        )
         front_xz = foot_level_pos + direction * velocity
         x, z = front_xz.x, front_xz.z
-        
+
         # Hypothetical function: get the terrain's top Y at (x, z)
         # If your voxel system doesn't have such a function,
         # you'll need to implement a raycast or block lookup yourself.
         floor_y = voxel_handler.get_floor_height(x, z)
-        
+
         # If we fail to find a block (e.g. air), return current foot level
         if floor_y is None:
             return foot_level_pos.y
-        
+
         return floor_y
 
     def check_bounding_box_collision(self, test_pos):
@@ -203,14 +208,13 @@ class Player(Camera):
 
         corners = [
             glm.vec3(-PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH, -HALF_HEIGHT,  PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH, -HALF_HEIGHT,  PLAYER_HALF_WIDTH),
-
-            glm.vec3(-PLAYER_HALF_WIDTH,  HALF_HEIGHT, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH,  HALF_HEIGHT, -PLAYER_HALF_WIDTH),
-            glm.vec3( PLAYER_HALF_WIDTH,  HALF_HEIGHT,  PLAYER_HALF_WIDTH),
-            glm.vec3(-PLAYER_HALF_WIDTH,  HALF_HEIGHT,  PLAYER_HALF_WIDTH),
+            glm.vec3(PLAYER_HALF_WIDTH, -HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3(PLAYER_HALF_WIDTH, -HALF_HEIGHT, PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, -HALF_HEIGHT, PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3(PLAYER_HALF_WIDTH, HALF_HEIGHT, -PLAYER_HALF_WIDTH),
+            glm.vec3(PLAYER_HALF_WIDTH, HALF_HEIGHT, PLAYER_HALF_WIDTH),
+            glm.vec3(-PLAYER_HALF_WIDTH, HALF_HEIGHT, PLAYER_HALF_WIDTH),
         ]
 
         for corner_offset in corners:
@@ -297,7 +301,7 @@ class Player(Camera):
             voxel_handler.set_voxel_type(WOOD)
         elif key_state[pg.K_8]:
             voxel_handler.set_voxel_type(GREEN_LEAF)
-        
+
         # Toggle gravity
         if key_state[pg.K_g]:
             self.gravity = not self.gravity
